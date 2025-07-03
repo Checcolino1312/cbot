@@ -1,0 +1,43 @@
+version: '3.9'
+
+services:
+  # Backend Rasa
+  rasa-backend:
+    build: 
+      context: ./cetma-backend
+      dockerfile: Dockerfile
+    container_name: rasa-chatbot-backend
+    ports:
+      - "8099:5005"
+    volumes:
+      - ./cetma-backend/models:/app/models
+      - ./cetma-backend/config:/app/config
+      - ./cetma-backend/data:/app/data
+      - ./cetma-backend/actions:/app/actions
+      - ./cetma-backend/endpoints.yml:/app/endpoints.yml
+    networks:
+      - chatbot-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5005/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend React
+  frontend:
+    build:
+      context: ./cetma-chatbot-frontend
+      dockerfile: Dockerfile
+    container_name: rasa-chatbot-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - rasa-backend
+    networks:
+      - chatbot-network
+    environment:
+      - VITE_RASA_API_URL=http://rasa-backend:5005
+
+networks:
+  chatbot-network:
+    driver: bridge
